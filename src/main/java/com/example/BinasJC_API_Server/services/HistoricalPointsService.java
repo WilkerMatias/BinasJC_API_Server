@@ -1,11 +1,8 @@
 package com.example.BinasJC_API_Server.services;
 
 import com.example.BinasJC_API_Server.dtos.HistoricalPointsDTO;
-import com.example.BinasJC_API_Server.models.HistoricalPoints;
-import com.example.BinasJC_API_Server.models.Type;
-import com.example.BinasJC_API_Server.models.User;
-import com.example.BinasJC_API_Server.repositories.HistoricalPointsRepository;
-import com.example.BinasJC_API_Server.repositories.UserRepository;
+import com.example.BinasJC_API_Server.models.*;
+import com.example.BinasJC_API_Server.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +17,15 @@ public class HistoricalPointsService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PointsChatRepository pointsChatRepository;
+
+    @Autowired
+    private GiftEarnedRepository giftEarnedRepository;
+
+    @Autowired
+    private TrajectoryRepository trajectoryRepository;
 
     // Listar todos os registros
     public List<HistoricalPointsDTO> getAllHistoricalPoints() {
@@ -70,31 +76,64 @@ public class HistoricalPointsService {
     }
 
     // Atualizar o processo
-    public HistoricalPoints updateProcess(Long id, Long newProcessId) {
-        HistoricalPoints historicalPoint = historicalPointsRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("HistoricalPoint not found with ID: " + id));
-
-        historicalPoint.setProcess(newProcessId);
-        return historicalPointsRepository.save(historicalPoint);
-    }
-
-    // Atualizar o tipo
-    public HistoricalPoints updateType(Long id, Type newType) {
-        HistoricalPoints historicalPoint = historicalPointsRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("HistoricalPoint not found with ID: " + id));
-
-        historicalPoint.setType(newType);
-        return historicalPointsRepository.save(historicalPoint);
-    }
+//    public HistoricalPoints updateProcess(Long id, Long newProcessId) {
+//        HistoricalPoints historicalPoint = historicalPointsRepository.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("HistoricalPoint not found with ID: " + id));
+//
+//        historicalPoint.setProcess(newProcessId);
+//        return historicalPointsRepository.save(historicalPoint);
+//    }
+//
+//    // Atualizar o tipo
+//    public HistoricalPoints updateType(Long id, Type newType) {
+//        HistoricalPoints historicalPoint = historicalPointsRepository.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("HistoricalPoint not found with ID: " + id));
+//
+//        historicalPoint.setType(newType);
+//        return historicalPointsRepository.save(historicalPoint);
+//    }
 
     // Atualizar os pontos
     public HistoricalPoints updatePoints(Long id, int newPoints) {
+        // Verificar se os pontos são positivos
+        if (newPoints < 0) {
+            throw new IllegalArgumentException("Points must be a positive value.");
+        }
+
+        // Buscar o registro pelo ID
         HistoricalPoints historicalPoint = historicalPointsRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("HistoricalPoint not found with ID: " + id));
 
+        // Atualizar os pontos
         historicalPoint.setPoints(newPoints);
+
+        switch (historicalPoint.getType()){
+            case GIFT:
+                GiftEarned giftEarned = giftEarnedRepository.findById(historicalPoint.getProcess())
+                        .orElseThrow(() -> new IllegalArgumentException("Gift not found with ID: " + historicalPoint.getProcess()));
+                giftEarned.setPrice(newPoints);
+                giftEarnedRepository.save(giftEarned);
+                break;
+            case SEND:
+            case RECEIVED:
+                PointsChat pointsChat = pointsChatRepository.findById(historicalPoint.getProcess())
+                        .orElseThrow(() -> new IllegalArgumentException("PointsChat not found with ID: " + historicalPoint.getProcess()));
+                pointsChat.setPoints(newPoints); // Exemplo de lógica
+                pointsChatRepository.save(pointsChat);
+                break;
+//            case TRAJECTORY:
+//                Trajectory trajectory = trajectoryRepository.findById(historicalPoint.getProcess())
+//                        .orElseThrow(() -> new IllegalArgumentException("Trajectory not found with ID: " + processId));
+//                trajectory.setDistance(newPoints); // Exemplo de lógica
+//                trajectoryRepository.save(trajectory);
+//                break;
+            default:
+                throw new IllegalStateException("Unhandled HistoricalPoints Type: " + historicalPoint.getType());
+        }
+
         return historicalPointsRepository.save(historicalPoint);
     }
+
 
     // Deletar um registro
     public void deleteHistoricalPoint(Long id) {
@@ -115,4 +154,8 @@ public class HistoricalPointsService {
 
         return dto;
     }
+
+
+
+
 }

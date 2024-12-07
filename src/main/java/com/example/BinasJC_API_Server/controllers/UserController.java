@@ -47,6 +47,12 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @GetMapping("/{email}/password")
+    public ResponseEntity<String> getUserPassword(@PathVariable String email){
+        String password = userService.getPassword(email);
+        return ResponseEntity.ok(password);
+    }
+
     // Obter usuário por username
     @GetMapping("/username")
     public ResponseEntity<UserDTO> getUserByUsername(@RequestParam String username) {

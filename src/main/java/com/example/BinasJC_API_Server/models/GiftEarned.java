@@ -11,6 +11,7 @@ public class GiftEarned {
     private Long id;
 
     private String name;
+    private int price;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date date;
@@ -19,6 +20,14 @@ public class GiftEarned {
 
     @ManyToOne
     private User user;
+
+    public int getPrice() {
+        return price;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
 
     public Long getId() {
         return id;

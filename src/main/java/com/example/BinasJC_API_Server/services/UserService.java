@@ -211,9 +211,13 @@ public class UserService {
     }
 
     // Retorna a senha do usuário
-    public String getPassword(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+    public String getPassword(String email) {
+        User user = userRepository.findByEmail(email);
+
+        if(user == null){
+            throw new RuntimeException("User not found with email: " + email);
+        }
+
         return user.getPassword();
     }
 

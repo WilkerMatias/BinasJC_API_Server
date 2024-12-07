@@ -54,6 +54,7 @@ public class GiftEarnedService {
         GiftEarned giftEarned = new GiftEarned();
         giftEarned.setUser(user);
         giftEarned.setName(gift.getName());
+        giftEarned.setPrice(gift.getPrice());
         giftEarned.setDate(new Date());
         giftEarned.setUsed(false);
 
@@ -61,7 +62,7 @@ public class GiftEarnedService {
         GiftEarned savedGiftEarned = giftEarnedRepository.save(giftEarned);
 
         // Criar um registro no HistoricalPoints
-        historicalPointsService.createHistoricalPoint(userId,2L, Type.GIFT, gift.getPrice());
+        historicalPointsService.createHistoricalPoint(userId,giftEarned.getId(), Type.GIFT, gift.getPrice());
 
         return savedGiftEarned;
 
@@ -108,6 +109,7 @@ public class GiftEarnedService {
         GiftEarnedDTO dto = new GiftEarnedDTO();
         dto.setGift(giftEarned.getId());
         dto.setName(giftEarned.getName());
+        dto.setPrice(giftEarned.getPrice());
         dto.setDate(giftEarned.getDate());
         dto.setUsed(giftEarned.isUsed());
         return dto;

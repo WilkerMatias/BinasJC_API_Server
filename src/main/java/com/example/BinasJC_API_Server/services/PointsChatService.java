@@ -58,8 +58,8 @@ public class PointsChatService {
         PointsChat savedPointsChat = pointsChatRepository.save(pointsChat);
 
         // Criar registros de HistoricalPoints para ambos os usuários
-        historicalPointsService.createHistoricalPoint(fromUserId, 1L, Type.SEND, points); // Histórico do remetente
-        historicalPointsService.createHistoricalPoint(toUserId, 1L, Type.RECEIVED, points); // Histórico do destinatário
+        historicalPointsService.createHistoricalPoint(fromUserId, pointsChat.getId(), Type.SEND, points); // Histórico do remetente
+        historicalPointsService.createHistoricalPoint(toUserId, pointsChat.getId(), Type.RECEIVED, points); // Histórico do destinatário
 
         return savedPointsChat;
     }

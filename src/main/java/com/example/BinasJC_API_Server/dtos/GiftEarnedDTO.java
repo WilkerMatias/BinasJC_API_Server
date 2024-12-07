@@ -7,6 +7,15 @@ public class GiftEarnedDTO {
     private String name;
     private Date date;
     private boolean used;
+    private int price;
+
+    public int getPrice() {
+        return price;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
 
     public long getGift() {
         return gift;
