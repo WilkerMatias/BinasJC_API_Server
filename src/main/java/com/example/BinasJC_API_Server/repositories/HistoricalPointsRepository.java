@@ -9,4 +9,6 @@ import java.util.List;
 public interface HistoricalPointsRepository extends JpaRepository<HistoricalPoints, Long> {
 
     List<HistoricalPoints> findByUser(User user);
+    List<HistoricalPoints> findByProcess(Long processId);
+
 }

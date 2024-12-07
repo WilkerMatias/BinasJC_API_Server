@@ -64,16 +64,53 @@ public class TrajectoryService {
     }
 
     // Finalizar uma trajetória
-    public Trajectory endTrajectory(Long trajectoryId, Long toStation) {
+    public TrajectoryDTO endTrajectory(Long trajectoryId, Long toStation) {
+        // Buscar a trajetória
         Trajectory trajectory = trajectoryRepository.findById(trajectoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Trajectory not found with ID: " + trajectoryId));
 
+        // Verificar se a trajetória já foi encerrada
         if (trajectory.getEnd() != null) {
-            throw new IllegalArgumentException("Trajectory already ended.");
+            throw new IllegalArgumentException("Trajectory is already ended.");
         }
-        trajectory.setToStation(toStation);
+
+        // Calcular a distância total somando as distâncias entre todos os pontos da rota
+        List<Coords> route = trajectory.getRoute();
+        double totalDistance = 0.0;
+
+        for (int i = 0; i < route.size() - 1; i++) {
+            Coords point1 = route.get(i);
+            Coords point2 = route.get(i + 1);
+
+            // Calcular distância entre dois pontos
+            totalDistance += calculateDistance(point1.getLat(), point1.getLon(),
+                    point2.getLat(), point2.getLon());
+        }
+
+        // Atualizar a distância, data de fim e salvar
+        trajectory.setDistance(totalDistance);
         trajectory.setEnd(new Date());
-        return trajectoryRepository.save(trajectory);
+        trajectory.setToStation(toStation);
+        trajectoryRepository.save(trajectory);
+
+        // Retornar a trajetória atualizada como DTO
+        return convertToDTO(trajectory);
+    }
+
+    // Método auxiliar para calcular a distância entre dois pontos geográficos
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int EARTH_RADIUS = 6371; // Raio médio da Terra em km
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c; // Retorna a distância em quilômetros
     }
 
     // Listar trajetórias por usuário

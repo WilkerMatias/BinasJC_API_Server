@@ -3,6 +3,7 @@ package com.example.BinasJC_API_Server.services;
 import com.example.BinasJC_API_Server.dtos.GiftEarnedDTO;
 import com.example.BinasJC_API_Server.models.Gift;
 import com.example.BinasJC_API_Server.models.GiftEarned;
+import com.example.BinasJC_API_Server.models.Type;
 import com.example.BinasJC_API_Server.models.User;
 import com.example.BinasJC_API_Server.repositories.GiftEarnedRepository;
 import com.example.BinasJC_API_Server.repositories.GiftRepository;
@@ -27,6 +28,9 @@ public class GiftEarnedService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private HistoricalPointsService historicalPointsService;
+
     // Registrar um Gift Earned
     @Transactional
     public GiftEarned createGiftEarned(Long userId, Long giftId) {
@@ -49,11 +53,18 @@ public class GiftEarnedService {
         // Criar o GiftEarned
         GiftEarned giftEarned = new GiftEarned();
         giftEarned.setUser(user);
-        giftEarned.setName(gift.getName()); // Copiar o nome do Gift
-        giftEarned.setDate(new Date());    // Data de obtenção
-        giftEarned.setUsed(false);         // Sempre falso ao criar
+        giftEarned.setName(gift.getName());
+        giftEarned.setDate(new Date());
+        giftEarned.setUsed(false);
 
-        return giftEarnedRepository.save(giftEarned);
+        // Salvar o GiftEarned
+        GiftEarned savedGiftEarned = giftEarnedRepository.save(giftEarned);
+
+        // Criar um registro no HistoricalPoints
+        historicalPointsService.createHistoricalPoint(userId,2L, Type.GIFT, gift.getPrice());
+
+        return savedGiftEarned;
+
     }
 
     // Buscar GiftEarned por ID

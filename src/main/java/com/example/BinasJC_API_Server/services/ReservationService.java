@@ -26,7 +26,7 @@ public class ReservationService {
     private BikeRepository bikeRepository;
 
     // Criar nova reserva
-    public ReservationDTO createReservation(Long userId, Long stationId, Long bikeId) {
+    public ReservationDTO createReservation(Long userId, Long stationId, Long bikeId, Date plannedDate) {
         // Verificar se o usuário existe
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
@@ -49,7 +49,8 @@ public class ReservationService {
         reservation.setUser(user);
         reservation.setStation(station);
         reservation.setBike(bike);
-        reservation.setDate(new Date());
+        reservation.setDate(new Date()); // Data de criação
+        reservation.setPlannedDate(plannedDate); // Data planejada
         reservation.setStatus(true);
 
         // Salvar a reserva
@@ -102,6 +103,7 @@ public class ReservationService {
         dto.setStation(reservation.getStation().getId());
         dto.setBike(reservation.getBike().getId());
         dto.setDate(reservation.getDate());
+        dto.setPlannedDate(reservation.getPlannedDate());
         dto.setStatus(reservation.isStatus());
         return dto;
     }

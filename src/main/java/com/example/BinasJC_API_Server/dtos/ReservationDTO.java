@@ -8,6 +8,7 @@ public class ReservationDTO {
     private Long station;
     private Long bike;
     private Date date;
+    private Date plannedDate; // Data planejada
     private boolean status;
 
     public Long getId() {
@@ -48,6 +49,14 @@ public class ReservationDTO {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public Date getPlannedDate() {
+        return plannedDate;
+    }
+
+    public void setPlannedDate(Date plannedDate) {
+        this.plannedDate = plannedDate;
     }
 
     public boolean isStatus() {
