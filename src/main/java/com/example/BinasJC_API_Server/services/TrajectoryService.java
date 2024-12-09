@@ -52,16 +52,32 @@ public class TrajectoryService {
             throw new IllegalArgumentException("Cannot add coordinates to a trajectory that has already ended.");
         }
 
-        // Adicionar a nova coordenada à rota
+        // Obter a rota atual
         List<Coords> route = trajectory.getRoute();
         if (route == null) {
             route = new ArrayList<>();
         }
-        route.add(convertToCoords(newCoords));
+
+        // Converter o novo ponto
+        Coords newPoint = convertToCoords(newCoords);
+
+        // Calcular a distância entre o último ponto e o novo ponto
+        if (!route.isEmpty()) {
+            Coords lastPoint = route.get(route.size() - 1);
+            double additionalDistance = calculateDistance(
+                    lastPoint.getLat(), lastPoint.getLon(),
+                    newPoint.getLat(), newPoint.getLon()
+            );
+            trajectory.setDistance(trajectory.getDistance() + additionalDistance);
+        }
+
+        // Adicionar o novo ponto à rota
+        route.add(newPoint);
         trajectory.setRoute(route);
 
         return trajectoryRepository.save(trajectory);
     }
+
 
     // Finalizar uma trajetória
     public TrajectoryDTO endTrajectory(Long trajectoryId, Long toStation) {
@@ -74,28 +90,16 @@ public class TrajectoryService {
             throw new IllegalArgumentException("Trajectory is already ended.");
         }
 
-        // Calcular a distância total somando as distâncias entre todos os pontos da rota
-        List<Coords> route = trajectory.getRoute();
-        double totalDistance = 0.0;
-
-        for (int i = 0; i < route.size() - 1; i++) {
-            Coords point1 = route.get(i);
-            Coords point2 = route.get(i + 1);
-
-            // Calcular distância entre dois pontos
-            totalDistance += calculateDistance(point1.getLat(), point1.getLon(),
-                    point2.getLat(), point2.getLon());
-        }
-
-        // Atualizar a distância, data de fim e salvar
-        trajectory.setDistance(totalDistance);
-        trajectory.setEnd(new Date());
+        // Atualizar a estação final e data de término
         trajectory.setToStation(toStation);
+        trajectory.setEnd(new Date());
+
         trajectoryRepository.save(trajectory);
 
         // Retornar a trajetória atualizada como DTO
         return convertToDTO(trajectory);
     }
+
 
     // Método auxiliar para calcular a distância entre dois pontos geográficos
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
