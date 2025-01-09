@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -20,9 +21,10 @@ public class ReservationController {
     public ResponseEntity<ReservationDTO> createReservation(
             @RequestParam Long userId,
             @RequestParam Long stationId,
-            @RequestParam Long bikeId
+            @RequestParam Long bikeId,
+            @RequestParam Date plannedDate
     ) {
-        ReservationDTO reservation = reservationService.createReservation(userId, stationId, bikeId);
+        ReservationDTO reservation = reservationService.createReservation(userId, stationId, bikeId,plannedDate);
         return ResponseEntity.ok(reservation);
     }
 
