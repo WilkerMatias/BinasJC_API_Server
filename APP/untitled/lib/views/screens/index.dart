@@ -5,12 +5,14 @@ import 'package:untitled/views/screens/map.dart';
 import 'package:untitled/views/screens/chat.dart';
 import 'package:untitled/views/screens/points.dart';
 import 'package:untitled/views/screens/register.dart';
-
+import '../../datalocal/appDatabase.dart';
+import '../../datalocal/user.dart';
+import '../../models/user.dart';
 import '../utils/AppColor.dart';
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
-
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -74,6 +76,39 @@ class IndexScreen extends StatefulWidget {
 
 class _IndexScreenState extends State<IndexScreen> {
   @override
+  void initState() {
+    super.initState();
+    // Verifica se há um usuário registrado ao carregar a tela
+    _checkUser();
+  }
+
+  // Função que verifica se há um usuário no banco de dados
+  Future<void> _checkUser() async {
+    final appDatabase = AppDatabase.instance;
+    final userDatabase = UserDatabase(appDatabase);
+
+    try {
+      List<User> users = await userDatabase.getAll();
+      userDatabase.close();
+
+      if (users.isNotEmpty) {
+        // int userId = users.first.id; // Assume que o primeiro usuário é o atual
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MyHomePage(), // Passa o ID
+          ),
+        );
+      }
+    } catch (e) {
+      // Log ou mostre uma mensagem de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao verificar sessao iniciada.')),
+      );    }
+
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF1FF),
@@ -81,8 +116,6 @@ class _IndexScreenState extends State<IndexScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            //Image.asset('assets/bicycle_logo.png', height: 100),
-            // Certifique-se de ter a imagem no diretório assets
             const SizedBox(height: 20),
             const Text(
               'BinasJC',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'index.dart'; // Substitua pelo arquivo correto onde está a tela inicial ou a próxima tela
+import 'package:untitled/services/user.dart';
+import 'index.dart'; // Substitua pelo arquivo correto onde está a MyHomePage
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,12 +14,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Função para simular o processo de login
-  void _login() {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+  // Estado de carregamento
+  bool _isLoading = false;
 
-    // Validação simples: verificar se os campos estão vazios
+  // Função para realizar o login
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Validação simples
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos!')),
@@ -26,18 +30,34 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Simulação de login (substitua isso com sua lógica de autenticação real)
-    if (username == 'usuario' && password == 'senha123') {
-      // Navega para a tela inicial se o login for bem-sucedido
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MyHomePage()),
-      );
-    } else {
-      // Exibe mensagem de erro se as credenciais estiverem incorretas
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = await UserService().login(username, password);
+
+      if (user != null) {
+        // Navega para a MyHomePage passando o ID do usuário
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MyHomePage(),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Credenciais incorretas!')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Credenciais incorretas!')),
+        SnackBar(content: Text('Erro ao fazer login: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -60,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
-              // Campo de username
               TextField(
                 controller: _usernameController,
                 decoration: const InputDecoration(
@@ -69,7 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Campo de senha
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -79,16 +97,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              // Botão de login
-              ElevatedButton(
-                onPressed: _login, // Chama a função de login
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xEE134B70),
+                  minimumSize: const Size(200, 50),
+                ),
                 child: const Text(
                   'Entrar',
                   style: TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xEE134B70), // Cor do botão
-                  minimumSize: const Size(200, 50), // Tamanho do botão
                 ),
               ),
             ],

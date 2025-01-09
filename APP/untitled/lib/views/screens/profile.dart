@@ -1,5 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:untitled/models/user.dart';
+
+import '../../services/user.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,50 +12,72 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _saveProfile() {
-    // Simulação de salvar informações
-    final updatedName = _nameController.text;
-    final updatedEmail = _emailController.text;
-    final updatedPassword = _passwordController.text;
+  late User _user;
+  late UserService _userService;
 
-    // Aqui você pode integrar com seu backend ou lógica de atualização
-    print('Perfil atualizado:');
-    print('Nome: $updatedName');
-    print('Email: $updatedEmail');
-    print('Senha: $updatedPassword');
-
-    // Feedback ao usuário
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Perfil atualizado com sucesso!')),
-    );
-
-    Navigator.pop(context);
+  @override
+  void initState() {
+    super.initState();
+    _userService = UserService();
+    _loadUserData();
   }
 
-  void _deleteAccount() {
+  void _loadUserData() async {
+    // Simulação de obter dados do usuário (pode ser do banco de dados local ou API)
+    _user = await _userService.getUserById(1); // Carregar usuário por ID
+    setState(() {
+      _nameController.text = _user.username;
+      _passwordController.text = '';  // Não mostramos a senha por questões de segurança
+    });
+  }
+
+  void _saveProfile() async {
+    final updatedName = _nameController.text;
+    final updatedPassword = _passwordController.text;
+
+    // Atualizar o usuário
+    try {
+      await _userService.updateUsername(_user.id, updatedName);
+      await _userService.updatePassword(_user.id, updatedPassword);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao atualizar perfil: $e')),
+      );
+    }
+    Navigator.pop(context);  // Fechar tela após a atualização
+  }
+
+  void _deleteAccount() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Excluir Conta'),
-        content: const Text(
-            'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.'),
+        content: const Text('Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              // Aqui você pode integrar com seu backend para exclusão
-              print('Conta excluída');
-              Navigator.pop(context); // Fecha o diálogo
-              Navigator.pop(context); // Fecha a tela de perfil
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Conta excluída com sucesso!')),
-              );
+            onPressed: () async {
+              try {
+                await _userService.deleteUser(_user.id);  // Excluir o usuário
+                Navigator.pop(context); // Fecha o diálogo
+                Navigator.pop(context); // Fecha a tela de perfil
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Conta excluída com sucesso!')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao excluir conta: $e')),
+                );
+              }
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -82,17 +106,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: OutlineInputBorder(),
                   labelText: 'Nome',
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Email'),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Email',
-                ),
-                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               const Text('Senha'),

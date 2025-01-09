@@ -51,4 +51,8 @@ class UserDatabase {
       whereArgs: [id],
     );
   }
+
+  Future<void> close() async {
+    _appDatabase.close();
+  }
 }

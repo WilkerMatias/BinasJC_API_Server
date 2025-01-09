@@ -1,32 +1,13 @@
 import 'package:flutter/material.dart';
-
-// Definição das classes
-class Coords {
-  final double lat;
-  final double lon;
-  Coords(this.lat, this.lon);
-}
-
-class Bike {
-  final String id;
-  String status; // 'STATION', 'RESERVED', 'USE'
-  Coords location;
-
-  Bike(this.id, this.status, this.location);
-}
-
-class Station {
-  final String id;
-  final Coords location;
-  final List<Bike> bikes;
-
-  Station(this.id, this.location, this.bikes);
-
-  // Verifica se há bicicletas disponíveis na estação
-  bool hasAvailableBikes() {
-    return bikes.any((bike) => bike.status == 'STATION');
-  }
-}
+import 'package:untitled/datalocal/station.dart';
+import 'package:untitled/services/reservation.dart';
+import 'package:untitled/services/station.dart';
+import '../../datalocal/appDatabase.dart';
+import '../../datalocal/reservation.dart';
+import '../../datalocal/user.dart';
+import '../../models/bike.dart';
+import '../../models/reservation.dart';
+import '../../models/station.dart';
 
 class HomeWidget extends StatefulWidget {
   const HomeWidget({super.key});
@@ -36,148 +17,183 @@ class HomeWidget extends StatefulWidget {
 }
 
 class _HomeWidgetState extends State<HomeWidget> {
+  List<Station> _stations = [];
   bool _isBikeConnected = false;
   Station? _selectedStation;
+  Reservation? _activeReservation; // Para armazenar a reserva ativa
   Bike? _selectedBike;
 
-  // Lista de estações e bicicletas
-  final List<Station> _stations = [
-    Station(
-      'Estação 1',
-      Coords(0.0, 0.0),
-      [
-        Bike('Bike A', 'STATION', Coords(0.0, 0.0)),
-        Bike('Bike B', 'STATION', Coords(0.0, 0.0)),
-      ],
-    ),
-    Station(
-      'Estação 2',
-      Coords(1.0, 1.0),
-      [
-        Bike('Bike C', 'STATION', Coords(1.0, 1.0)),
-      ],
-    ),
-    Station(
-      'Estação 3',
-      Coords(2.0, 2.0),
-      [
-        Bike('Bike D', 'USE', Coords(2.0, 2.0)), // Ocupada
-        Bike('Bike E', 'RESERVED', Coords(2.0, 2.0)), // Reservada
-      ],
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchStations();
+    _checkActiveReservation(); // Verifica se já existe uma reserva ativa ao iniciar
+  }
 
+  Future<void> _fetchStations() async {
+    try {
+      final stations = await StationService().getAllStations();
+      setState(() {
+        _stations = stations;
+      });
+    } catch (e) {
+      try {
+        final appDatabase = AppDatabase.instance;
+        final stationDatabase = StationDatabase(appDatabase);
+        final stations = await stationDatabase.getAll();
+        setState(() {
+          _stations = stations;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar estações: $e')),
+        );
+      }
+    }
+  }
+
+  // Verifica se já existe uma reserva ativa
+  Future<void> _checkActiveReservation() async {
+    try {
+      final appDatabase = AppDatabase.instance;
+      final reservationDatabase = ReservationDatabase(appDatabase);
+      final activeReservations = await reservationDatabase.getAll();
+      setState(() {
+        _activeReservation = activeReservations.isNotEmpty
+            ? activeReservations
+                .firstWhere((reservation) => reservation.status == true)
+            : null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao verificar reservas ativas: $e')),
+      );
+    }
+  }
+
+  // Função para realizar a reserva
+  Future<void> _doReservation() async {
+    if (_selectedStation != null &&
+        _selectedStation!.bikes > 0 &&
+        _activeReservation == null) {
+      final appDatabase = AppDatabase.instance;
+      try {
+        final userDatabase = UserDatabase(appDatabase);
+        final user = await userDatabase.getAll();
+        final userId = user.first.id;
+
+        // Cria a reserva sem a escolha de uma bicicleta
+        final reservation = await ReservationService().createReservation(
+          userId: userId,
+          stationId: _selectedStation!.id,
+          bikeId: 0, // 0 ou valor nulo, pois a bicicleta não é escolhida
+        );
+
+        setState(() {
+          _activeReservation =
+              reservation; // Atualiza o estado com a nova reserva ativa
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao realizar reserva: $e')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Já existe uma reserva ativa ou sem bicicletas disponíveis.')),
+      );
+    }
+  }
+
+  // Função para alternar entre conectar e desconectar a bicicleta
   void _toggleConnection() {
     setState(() {
       if (_isBikeConnected) {
-        // Desconectar bicicleta
-        _selectedBike?.status = 'STATION';
         _isBikeConnected = false;
         _selectedBike = null;
-      } else if (_selectedBike != null) {
-        // Conectar bicicleta
-        _selectedBike?.status = 'USE';
+      } else {
         _isBikeConnected = true;
       }
     });
-  }
-
-  void _reserveBike() {
-    if (_selectedStation != null && _selectedBike != null) {
-      setState(() {
-        if (_selectedBike!.status == 'STATION') {
-          // Reservar bicicleta
-          _selectedBike!.status = 'RESERVED';
-          _isBikeConnected = true;
-        }
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isBikeConnected ? 'Bicicleta Conectada' : 'Reservar Bicicleta'),
+        title: Text(
+            _isBikeConnected ? 'Bicicleta Conectada' : 'Reservar Bicicleta'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Visibility(
-              visible: !_isBikeConnected,
-              child: Column(
+        child: _stations.isEmpty
+            ? const CircularProgressIndicator() // Exibe carregamento enquanto busca as estações
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  DropdownButton<Station>(
-                    value: _selectedStation,
-                    hint: const Text('Selecione uma Estação'),
-                    items: _stations.map((station) {
-                      return DropdownMenuItem(
-                        value: station,
-                        child: Text(
-                          '${station.id} - Localização: (${station.location.lat}, ${station.location.lon}) '
-                              '${station.hasAvailableBikes() ? "(Disponível)" : "(Sem Bikes)"}',
+                  Visibility(
+                    visible: !_isBikeConnected && _activeReservation == null,
+                    // Mostra o formulário de reserva se não houver uma reserva ativa
+                    child: Column(
+                      children: [
+                        DropdownButton<Station>(
+                          value: _selectedStation,
+                          hint: const Text('Selecione uma Estação'),
+                          items: _stations.map((station) {
+                            return DropdownMenuItem(
+                              value: station,
+                              child: Text(
+                                '${station.name} - Localização: (${station.location.lat}, ${station.location.lon}) '
+                                '${station.bikes > 0 ? "(Disponível)" : "(Sem Bikes)"}',
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedStation = value;
+                            });
+                          },
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedStation = value;
-                        _selectedBike = null; // Resetar a bike ao trocar de estação
-                      });
-                    },
-                  ),
-                  if (_selectedStation != null && _selectedStation!.hasAvailableBikes())
-                    DropdownButton<Bike>(
-                      value: _selectedBike,
-                      hint: const Text('Selecione uma Bike'),
-                      items: _selectedStation!.bikes
-                          .where((bike) => bike.status == 'STATION')
-                          .map((bike) {
-                        return DropdownMenuItem(
-                          value: bike,
-                          child: Text(bike.id),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedBike = value;
-                        });
-                      },
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _selectedStation != null &&
+                                  _selectedStation!.bikes > 0
+                              ? _doReservation
+                              : null,
+                          child: const Text('Reservar'),
+                        ),
+                      ],
                     ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: (_selectedStation != null &&
-                        _selectedStation!.hasAvailableBikes() &&
-                        _selectedBike != null)
-                        ? _reserveBike
-                        : null,
-                    child: const Text('Reservar'),
+                  ),
+                  if (_activeReservation !=
+                      null) // Exibe a informação da reserva ativa
+                    Column(
+                      children: [
+                        Text(
+                          'Reserva Ativa:\n'
+                          'Estação: ${_selectedStation?.name}\n'
+                          'Status: ${_activeReservation!.status ? "Ativa" : "Cancelada"}',
+                          style: const TextStyle(fontSize: 18),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  Visibility(
+                    visible: _isBikeConnected && _activeReservation == null,
+                    // Não permite conectar se houver uma reserva ativa
+                    child: Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: _toggleConnection,
+                          child: const Text('Conectar'),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-            Visibility(
-              visible: _isBikeConnected,
-              child: Column(
-                children: [
-                  Text(
-                    'Estação: ${_selectedStation?.id}\n'
-                        'Bicicleta: ${_selectedBike?.id}\n'
-                        'Status: ${_selectedBike?.status}',
-                    style: const TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _toggleConnection,
-                    child: const Text('Desconectar'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

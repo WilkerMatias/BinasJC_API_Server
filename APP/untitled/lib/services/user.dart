@@ -19,7 +19,7 @@ class UserService {
 
       final appDatabase = AppDatabase.instance;
       final userDatabase = UserDatabase(appDatabase);
-      await userDatabase.update(user);
+      await userDatabase.insert(user);
       return user;
 
     } catch (e) {
